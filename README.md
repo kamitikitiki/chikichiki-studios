@@ -27,6 +27,7 @@ src/routes/      one handler per route
   token.js            POST /api/token           scheduled job only
   accounts.js         GET  /api/accounts        scheduled job only (setup helper)
 lib/             shared code
+scripts/ci-deploy.mjs  deploys code + secrets as a single version
 wrangler.jsonc   Worker config: assets directory + KV binding
 ```
 
@@ -36,10 +37,14 @@ wrangler.jsonc   Worker config: assets directory + KV binding
 | --- | --- |
 | Project name | `chikichiki-studios` |
 | Build command | *(leave empty)* |
-| Deploy command | `npx wrangler deploy` |
+| Deploy command | `npm run deploy:ci` |
 
-Everything else comes from `wrangler.jsonc`. Before the first deploy, create a KV
-namespace in the dashboard and paste its id into `kv_namespaces[0].id`.
+Everything else comes from `wrangler.jsonc`.
+
+The four secrets go in **Settings > Build > Build variables and secrets** (type: Secret),
+*not* in Settings > Variables and Secrets. `scripts/ci-deploy.mjs` reads them from the
+build environment and passes them to `wrangler deploy --secrets-file`, so the code and
+the secrets land in the same Worker version.
 
 ## Configuration
 
@@ -70,11 +75,13 @@ TikTok app settings:
 `GET /api/health` returns booleans for each secret plus the KV status. It never returns
 any value. If sign-in fails with `client_key=undefined`, check it first.
 
-**Secrets and the GitHub integration.** Deploying through Workers Builds used to delete
-the dashboard secrets on every build (cloudflare/workers-sdk#8871), which shows up as
-`/api/health` reporting `false` for everything while KV still reports `ok`. `keep_vars:
-true` in `wrangler.jsonc` prevents that. If the secrets ever have to be re-entered, set
-them **after** the deploy that carries `keep_vars`, not before.
+**Secrets and the Git integration.** In Workers, secrets belong to a *version*. A version
+built by the Git integration does not carry the secrets typed into Settings > Variables and
+Secrets, so the settings page lists them while `env.*` is undefined at runtime -- visible as
+`/api/health` reporting `false` for every secret while KV still reports `ok`.
+`scripts/ci-deploy.mjs` fixes this by deploying with `--secrets-file`, which puts code and
+secrets in one version. Rotating a secret therefore means editing the **build** secret and
+pushing (or re-running the build), not editing Variables and Secrets.
 
 ## Design notes
 
