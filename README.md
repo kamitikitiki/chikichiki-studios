@@ -65,6 +65,12 @@ TikTok app settings:
 - Privacy Policy URL: `https://chikichiki-studios.kamitikitiki.workers.dev/privacy.html`
 - Scopes: `user.info.basic`, `video.publish`
 
+## Troubleshooting
+
+`GET /api/health` returns booleans for each secret plus the KV status. It never returns
+any value. If sign-in fails with `client_key=undefined`, check it first -- a secret saved
+in the dashboard only takes effect once a new version is deployed.
+
 ## Design notes
 
 - The refresh token lives in Cloudflare KV and nowhere else. TikTok rotates refresh tokens,

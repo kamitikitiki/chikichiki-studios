@@ -13,6 +13,7 @@ import { handle as publishUpload } from './routes/publish-upload.js';
 import { handle as publishStatus } from './routes/publish-status.js';
 import { handle as token } from './routes/token.js';
 import { handle as accounts } from './routes/accounts.js';
+import { handle as health } from './routes/health.js';
 
 const ROUTES = {
   'GET /auth/start': authStart,
@@ -24,6 +25,7 @@ const ROUTES = {
   'GET /api/publish/status': publishStatus,
   'POST /api/token': token,
   'GET /api/accounts': accounts,
+  'GET /api/health': health,
 };
 
 export default {
