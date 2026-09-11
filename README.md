@@ -3,44 +3,47 @@
 A small publishing tool that posts a creator's own generated videos to their own TikTok
 account, using the TikTok Content Posting API (Direct Post).
 
-Deployed on Cloudflare Pages. The static pages and the server-side code live on the same
-domain on purpose: the TikTok audit rejects apps whose app name, website URL and redirect
-URI do not point at the same brand.
+Deployed as a Cloudflare Worker with static assets. The static pages and the server-side
+code live on the same domain on purpose: the TikTok audit rejects apps whose app name,
+website URL and redirect URI do not point at the same brand.
 
 ## Layout
 
 ```
-public/          static pages
+public/          static assets -- served directly, the Worker never sees these requests
   index.html       posting UI  (the screen the audit reviews)
   privacy.html     privacy policy   -- must stay reachable
   terms.html       terms of service -- must stay reachable
   page.css
-functions/       Cloudflare Pages Functions (server side)
-  auth/start.js          -> GET  /auth/start        begin OAuth
-  auth/callback.js       -> GET  /auth/callback     exchange code, store tokens
-  auth/logout.js         -> GET  /auth/logout       clear the session cookie
-  api/creator-info.js    -> GET  /api/creator-info  proxy creator_info/query
-  api/publish/init.js    -> POST /api/publish/init  proxy video/init
-  api/publish/upload.js  -> PUT  /api/publish/upload stream file to TikTok
-  api/publish/status.js  -> GET  /api/publish/status proxy status/fetch
-  api/token.js           -> POST /api/token         GitHub Actions only
-  api/accounts.js        -> GET  /api/accounts      GitHub Actions only (setup helper)
-lib/             shared code, not routed
+src/index.js     Worker entry point; routes everything that is not a static asset
+src/routes/      one handler per route
+  auth-start.js       GET  /auth/start          begin OAuth
+  auth-callback.js    GET  /auth/callback       exchange code, store tokens
+  auth-logout.js      GET  /auth/logout         clear the session cookie
+  creator-info.js     GET  /api/creator-info    proxy creator_info/query
+  publish-init.js     POST /api/publish/init    proxy video/init
+  publish-upload.js   PUT  /api/publish/upload  forward the file to TikTok
+  publish-status.js   GET  /api/publish/status  proxy status/fetch
+  token.js            POST /api/token           scheduled job only
+  accounts.js         GET  /api/accounts        scheduled job only (setup helper)
+lib/             shared code
+wrangler.jsonc   Worker config: assets directory + KV binding
 ```
 
-## Cloudflare Pages build settings
+## Deploy settings (Cloudflare dashboard, Git import)
 
 | Setting | Value |
 | --- | --- |
-| Framework preset | None |
+| Project name | `chikichiki-studios` |
 | Build command | *(leave empty)* |
-| Build output directory | `public` |
+| Deploy command | `npx wrangler deploy` |
 
-`functions/` is picked up automatically because it sits at the repository root.
+Everything else comes from `wrangler.jsonc`. Before the first deploy, create a KV
+namespace in the dashboard and paste its id into `kv_namespaces[0].id`.
 
 ## Configuration
 
-Cloudflare Pages → Settings → Variables and Secrets:
+Cloudflare dashboard → the Worker → Settings → Variables and Secrets (add each as a **Secret**):
 
 | Name | Type | Value |
 | --- | --- | --- |
@@ -49,18 +52,17 @@ Cloudflare Pages → Settings → Variables and Secrets:
 | `SESSION_SECRET` | Secret | any long random string |
 | `ACTIONS_SHARED_SECRET` | Secret | any long random string, shared with GitHub Actions |
 
-Cloudflare Pages → Settings → Bindings → KV namespace:
-
-| Variable name | Namespace |
-| --- | --- |
-| `TOKENS` | create one, any name |
+KV: the namespace is already declared in `wrangler.jsonc` (binding `TOKENS`). It is
+declared in the config rather than the dashboard because `wrangler deploy` treats the
+config file as the source of truth for bindings. Secrets are not affected -- those stay
+in the dashboard.
 
 TikTok app settings:
 
-- Website URL: `https://<your-project>.pages.dev`
-- Redirect URI: `https://<your-project>.pages.dev/auth/callback`
-- Terms of Service URL: `https://<your-project>.pages.dev/terms.html`
-- Privacy Policy URL: `https://<your-project>.pages.dev/privacy.html`
+- Website URL: `https://chikichiki-studios.kamitikitiki.workers.dev`
+- Redirect URI: `https://chikichiki-studios.kamitikitiki.workers.dev/auth/callback`
+- Terms of Service URL: `https://chikichiki-studios.kamitikitiki.workers.dev/terms.html`
+- Privacy Policy URL: `https://chikichiki-studios.kamitikitiki.workers.dev/privacy.html`
 - Scopes: `user.info.basic`, `video.publish`
 
 ## Design notes
@@ -75,6 +77,8 @@ TikTok app settings:
 - Uploads are proxied through `/api/publish/upload` rather than PUT directly from the
   browser, so the flow does not depend on CORS headers we do not control.
 - Videos pass through memory during upload and are never stored.
+- Requests that match a file in `public/` never reach the Worker, so the router in
+  `src/index.js` only handles `/auth/*` and `/api/*`.
 - The OAuth redirect URI is derived from the request origin. Only the production URL
-  (`https://<project>.pages.dev/auth/callback`) is registered with TikTok, so sign-in will not
-  work on Cloudflare preview deployments (`<hash>.<project>.pages.dev`). That is expected.
+  (`https://chikichiki-studios.kamitikitiki.workers.dev/auth/callback`) is registered with TikTok, so sign-in will not
+  work on Cloudflare preview deployments (preview aliases). That is expected.

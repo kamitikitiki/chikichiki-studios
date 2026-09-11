@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "chikichiki-studios",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-01",
+
+  // Static pages. A request that matches a file here is served directly and the
+  // Worker is never invoked; everything else falls through to src/index.js.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  },
+
+  // Holds the TikTok refresh token. This is the only place it ever lives.
+  // The id below is not a credential: KV is only reachable with account auth.
+  "kv_namespaces": [
+    {
+      "binding": "TOKENS",
+      "id": "0ff9698dd8cd48cea19dd39d70c991b2"
+    }
+  ]
+
+  // Secrets (TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET, SESSION_SECRET,
+  // ACTIONS_SHARED_SECRET) are set in the dashboard, never in this file.
+}
