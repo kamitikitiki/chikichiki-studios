@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chikichiki Studios</title>
+<style>
+  :root{
+    --bg:#121418; --panel:#1a1d23; --line:#2a2f38; --ink:#e8eaed; --muted:#9aa3af;
+    --accent:#3b82f6; --ok:#34d17a; --warn:#ffc23c; --bad:#ff4d4d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN",sans-serif}
+  .wrap{max-width:560px;margin:0 auto;padding:24px 16px 64px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+  .mark{width:36px;height:36px;border-radius:9px;background:#121418;border:1px solid var(--line);
+        display:grid;place-items:center;flex:none}
+  h1{font-size:17px;margin:0;font-weight:650;letter-spacing:.2px}
+  .sub{color:var(--muted);font-size:13px;margin:2px 0 0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+  .creator{display:flex;align-items:center;gap:12px}
+  .avatar{width:44px;height:44px;border-radius:50%;background:#2a2f38;object-fit:cover;flex:none}
+  .cname{font-weight:600}
+  .cuser{color:var(--muted);font-size:13px}
+  label{display:block;font-size:13px;color:var(--muted);margin:0 0 6px}
+  .field{margin-bottom:18px}
+  textarea,select,input[type=file]{width:100%;background:#12151a;color:var(--ink);
+        border:1px solid var(--line);border-radius:9px;padding:10px 12px;font:inherit}
+  textarea{min-height:92px;resize:vertical}
+  select:invalid{color:var(--muted)}
+  .preview{display:none;margin-top:12px}
+  .frame{width:200px;aspect-ratio:9/16;background:#0d0f12;border:1px solid var(--line);
+         border-radius:10px;overflow:hidden}
+  .frame video{width:100%;height:100%;object-fit:contain;background:#000;display:block}
+  .check{display:flex;align-items:flex-start;gap:10px;margin:10px 0;font-size:14px}
+  .check input{margin-top:3px;flex:none;width:16px;height:16px;accent-color:var(--accent)}
+  .check.off{opacity:.45}
+  .check .hint{color:var(--muted);font-size:12px;display:block}
+  .nest{margin-left:26px;padding-left:12px;border-left:1px solid var(--line);display:none}
+  .legal{font-size:12.5px;color:var(--muted);margin:18px 0 14px}
+  .legal a{color:#7aa2ff}
+  button.primary{width:100%;padding:12px;border-radius:10px;border:0;font:inherit;font-weight:650;
+        background:var(--accent);color:#fff;cursor:pointer}
+  button.primary:disabled{background:#2a2f38;color:#6b7280;cursor:not-allowed}
+  .reason{font-size:12.5px;color:var(--warn);margin-top:8px;min-height:1.2em}
+  .note{font-size:12.5px;color:var(--muted);margin-top:10px}
+  .banner{border-radius:10px;padding:12px 14px;font-size:13.5px;margin-bottom:16px}
+  .banner.bad{background:#2a1618;border:1px solid #4a2326;color:#ffb4b4}
+  .banner.ok{background:#14251c;border:1px solid #1f4433;color:#a8e6c4}
+  .banner.info{background:#161d2b;border:1px solid #24344f;color:#b9ccf0}
+  .link{background:none;border:0;color:#7aa2ff;font:inherit;font-size:13px;cursor:pointer;padding:0;text-decoration:none}
+  footer{margin-top:28px;font-size:12.5px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+  footer a{color:var(--muted)}
+  .center{text-align:center;padding:14px 0}
+  .hidden{display:none !important}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="mark">
+      <svg width="20" height="20" viewBox="0 0 100 100" aria-hidden="true">
+        <path d="M34 22 L34 34 L53.7 34 Z" fill="#ff4d4d"/>
+        <path d="M34 36 L34 48 L76.7 48 L57 36 Z" fill="#ffc23c"/>
+        <path d="M34 50 L34 62 L60.3 62 L80 50 Z" fill="#34d17a"/>
+        <path d="M34 64 L34 76 L37.3 76 L57 64 Z" fill="#3b82f6"/>
+      </svg>
+    </div>
+    <div>
+      <h1>Chikichiki Studios</h1>
+      <p class="sub">Publish your own generated videos to TikTok</p>
+    </div>
+  </header>
+
+  <!-- signed out -->
+  <section id="signedOut" class="card hidden">
+    <p style="margin-top:0">Connect the TikTok account you want to publish to. You will be asked to
+       approve access on TikTok, and you can disconnect at any time.</p>
+    <button class="primary" onclick="location.href='/auth/start'">Continue with TikTok</button>
+  </section>
+
+  <!-- loading -->
+  <section id="loading" class="card center">Loading your account…</section>
+
+  <!-- signed in -->
+  <section id="app" class="hidden">
+
+    <div class="card creator">
+      <img id="avatar" class="avatar" alt="">
+      <div style="flex:1">
+        <div class="cname" id="nickname">—</div>
+        <div class="cuser" id="username"></div>
+      </div>
+      <span style="display:flex;gap:12px;flex:none"><button class="link" id="switch">Switch account</button><a class="link" href="/auth/logout">Disconnect</a></span>
+    </div>
+
+    <div id="blocked" class="banner bad hidden"></div>
+
+    <div class="card">
+      <div class="field">
+        <label for="file">Video</label>
+        <input type="file" id="file" accept="video/mp4,video/quicktime,video/webm">
+        <div class="preview" id="preview">
+          <div class="frame"><video id="player" controls playsinline preload="metadata"></video></div>
+          <div class="note" id="meta"></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="title">Caption</label>
+        <textarea id="title" placeholder="Write a caption…"></textarea>
+        <div class="note">You can edit this freely, including any hashtags.</div>
+      </div>
+
+      <div class="field">
+        <label for="privacy">Who can view this video</label>
+        <select id="privacy" required>
+          <option value="" disabled selected>Select an option</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Interactions</label>
+        <label class="check" id="wrapComment"><input type="checkbox" id="allowComment"><span>Allow comments<span class="hint" id="hintComment"></span></span></label>
+        <label class="check" id="wrapDuet"><input type="checkbox" id="allowDuet"><span>Allow Duet<span class="hint" id="hintDuet"></span></span></label>
+        <label class="check" id="wrapStitch"><input type="checkbox" id="allowStitch"><span>Allow Stitch<span class="hint" id="hintStitch"></span></span></label>
+      </div>
+
+      <div class="field">
+        <label>Content disclosure</label>
+        <label class="check"><input type="checkbox" id="commercial"><span>This video promotes a brand, product or service<span class="hint">Turn this on if the content is commercial.</span></span></label>
+        <div class="nest" id="commercialOptions">
+          <label class="check"><input type="checkbox" id="yourBrand"><span>Your brand<span class="hint">You are promoting yourself or your own business.</span></span></label>
+          <label class="check" id="wrapBranded"><input type="checkbox" id="brandedContent"><span>Branded content<span class="hint" id="hintBranded">You are promoting another brand or a third party.</span></span></label>
+          <div class="note" id="labelNotice"></div>
+        </div>
+      </div>
+
+      <p class="legal" id="legal"></p>
+
+      <button class="primary" id="post" disabled>Post to TikTok</button>
+      <div class="reason" id="reason"></div>
+      <div class="note">After you post, it may take a few minutes for the content to process on TikTok.</div>
+    </div>
+
+    <div id="result"></div>
+  </section>
+
+  <footer>
+    <a href="/privacy.html">Privacy Policy</a>
+    <a href="/terms.html">Terms of Service</a>
+    <span>&copy; 2026 Chikichiki Studios</span>
+  </footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const MUSIC = 'https://www.tiktok.com/legal/page/global/music-usage-confirmation/en';
+const BRANDED = 'https://www.tiktok.com/legal/page/global/bc-policy/en';
+
+let creator = null;
+let file = null;
+let posting = false;
+
+const PRIVACY_LABEL = {
+  PUBLIC_TO_EVERYONE: 'Everyone',
+  MUTUAL_FOLLOW_FRIENDS: 'Friends (mutual follow)',
+  FOLLOWER_OF_CREATOR: 'Followers',
+  SELF_ONLY: 'Only me',
+};
+
+// Audit Point 1: creator_info is fetched on every page load and after any account
+// change. Nothing here is cached.
+async function loadCreator() {
+  let r;
+  try {
+    r = await fetch('/api/creator-info', { cache: 'no-store' }).then((x) => x.json());
+  } catch (e) {
+    $('loading').textContent = 'Could not reach the server. Please reload the page.';
+    return;
+  }
+  $('loading').classList.add('hidden');
+
+  if (!r.authorized) {
+    $('signedOut').classList.remove('hidden');
+    return;
+  }
+  $('app').classList.remove('hidden');
+
+  if (r.error) {
+    $('blocked').textContent = 'TikTok could not return your account details: ' +
+      (r.error.message || JSON.stringify(r.error));
+    $('blocked').classList.remove('hidden');
+    blockedReason = 'Posting is unavailable until your account details can be loaded.';
+    refresh();
+    return;
+  }
+
+  creator = r.creator;
+  $('avatar').src = creator.creator_avatar_url || '';
+  $('nickname').textContent = creator.creator_nickname || '';
+  $('username').textContent = creator.creator_username ? '@' + creator.creator_username : '';
+
+  // Audit Point 1: block posting when the account cannot currently accept posts.
+  const options = creator.privacy_level_options || [];
+  const maxDur = creator.max_video_post_duration_sec || 0;
+  if (options.length === 0 || maxDur === 0) {
+    $('blocked').textContent =
+      'This account cannot accept new posts right now. Please check your TikTok account status and try again later.';
+    $('blocked').classList.remove('hidden');
+    $('file').disabled = true;
+    $('title').disabled = true;
+    $('privacy').disabled = true;
+    blockedReason = 'This account cannot accept new posts right now.';
+    refresh();
+    return;
+  }
+
+  // Audit Point 2b: options come only from the API. No hard-coded list,
+  // and the placeholder stays selected so there is no default value.
+  const sel = $('privacy');
+  sel.innerHTML = '<option value="" disabled selected>Select an option</option>';
+  for (const v of options) {
+    const o = document.createElement('option');
+    o.value = v;
+    o.textContent = PRIVACY_LABEL[v] || v;
+    sel.appendChild(o);
+  }
+
+  // Audit Point 2c: toggles start off; grey out what the creator has disabled.
+  applyInteractionLocks();
+  refresh();
+}
+
+function applyInteractionLocks() {
+  const rows = [
+    ['comment_disabled', 'allowComment', 'wrapComment', 'hintComment', 'Comments are turned off in your TikTok settings.'],
+    ['duet_disabled', 'allowDuet', 'wrapDuet', 'hintDuet', 'Duet is turned off in your TikTok settings.'],
+    ['stitch_disabled', 'allowStitch', 'wrapStitch', 'hintStitch', 'Stitch is turned off in your TikTok settings.'],
+  ];
+  for (const [flag, input, wrap, hint, text] of rows) {
+    if (creator[flag]) {
+      $(input).checked = false;
+      $(input).disabled = true;
+      $(wrap).classList.add('off');
+      $(hint).textContent = text;
+    }
+  }
+}
+
+function selectedPrivacy() {
+  return $('privacy').value;
+}
+
+let blockedReason = '';
+const MAX_BYTES = 64 * 1048576; // single-chunk ceiling; larger files are rejected before init
+
+function refresh() {
+  const commercial = $('commercial').checked;
+  const priv = selectedPrivacy();
+  const isPrivate = priv === 'SELF_ONLY';
+
+  $('commercialOptions').style.display = commercial ? 'block' : 'none';
+  if (!commercial) {
+    $('yourBrand').checked = false;
+    $('brandedContent').checked = false;
+  }
+  const your = $('yourBrand').checked;
+  const branded = $('brandedContent').checked;
+
+  // Audit Point 3: branded content may not be private. Guard in BOTH directions.
+  // Direction A: branded content on -> "Only me" cannot be chosen.
+  for (const opt of $('privacy').options) {
+    if (opt.value === 'SELF_ONLY') {
+      opt.disabled = commercial && branded;
+      opt.textContent = opt.disabled ? 'Only me (unavailable for branded content)' : PRIVACY_LABEL.SELF_ONLY;
+    }
+  }
+  // Direction B: "Only me" chosen -> branded content cannot be turned on.
+  $('brandedContent').disabled = isPrivate;
+  $('wrapBranded').classList.toggle('off', isPrivate);
+  $('hintBranded').textContent = isPrivate
+    ? 'Branded content visibility cannot be set to private.'
+    : 'You are promoting another brand or a third party.';
+
+  // Audit Point 3: tell the user how TikTok will label the post.
+  let notice = '';
+  if (commercial && branded) notice = 'Your video will be labeled as “Paid partnership”. This cannot be changed once your video is posted.';
+  else if (commercial && your) notice = 'Your video will be labeled as “Promotional content”. This cannot be changed once your video is posted.';
+  $('labelNotice').textContent = notice;
+
+  // Audit Point 4: the compliance sentence changes with the disclosure.
+  $('legal').innerHTML = (commercial && branded)
+    ? 'By posting, you agree to TikTok’s <a href="' + BRANDED + '" target="_blank" rel="noopener">Branded Content Policy</a> and <a href="' + MUSIC + '" target="_blank" rel="noopener">Music Usage Confirmation</a>.'
+    : 'By posting, you agree to TikTok’s <a href="' + MUSIC + '" target="_blank" rel="noopener">Music Usage Confirmation</a>.';
+
+  // Audit Point 3: a disabled button must always say why.
+  let reason = '';
+  if (posting) reason = '';
+  else if (blockedReason) reason = blockedReason;
+  else if (!creator) reason = 'Your account is still loading.';
+  else if (!file) reason = 'Select a video to post.';
+  else if (!priv) reason = 'Choose who can view this video.';
+  else if (commercial && !your && !branded) reason = 'You need to indicate if your content promotes yourself, a third party, or both.';
+  else if (commercial && branded && isPrivate) reason = 'Branded content visibility cannot be set to private.';
+
+  $('reason').textContent = reason;
+  $('post').disabled = posting || reason !== '';
+  $('post').textContent = posting ? 'Posting…' : 'Post to TikTok';
+}
+
+$('file').addEventListener('change', () => {
+  file = $('file').files[0] || null;
+  const p = $('preview');
+  if ($('player').src) URL.revokeObjectURL($('player').src);
+  if (!file) { p.style.display = 'none'; refresh(); return; }
+
+  if (file.size > MAX_BYTES) {
+    $('meta').textContent = 'This file is ' + (file.size / 1048576).toFixed(0) + ' MB. The maximum is 64 MB.';
+    p.style.display = 'block';
+    $('player').parentElement.style.display = 'none';
+    $('player').removeAttribute('src');
+    file = null;
+    $('file').value = '';
+    refresh();
+    return;
+  }
+
+  // Audit Point 5: a real, playable preview. No watermark or logo is ever drawn
+  // over the creator's video.
+  $('player').src = URL.createObjectURL(file);
+  $('player').parentElement.style.display = '';
+  p.style.display = 'block';
+  $('player').onloadedmetadata = () => {
+    const d = Math.round($('player').duration);
+    const mb = (file.size / 1048576).toFixed(1);
+    let note = d + 's · ' + mb + ' MB';
+    const max = creator && creator.max_video_post_duration_sec;
+    if (max && d > max) {
+      note += ' — too long for this account (max ' + max + 's)';
+      file = null;
+      $('file').value = '';
+    }
+    $('meta').textContent = note;
+    refresh();
+  };
+  refresh();
+});
+
+for (const id of ['privacy', 'commercial', 'yourBrand', 'brandedContent']) {
+  $(id).addEventListener('change', refresh);
+}
+
+$('switch').addEventListener('click', () => { location.href = '/auth/start'; });
+
+$('post').addEventListener('click', async () => {
+  if (!file || posting) return;
+  posting = true; refresh();
+  const out = $('result');
+  out.innerHTML = '<div class="banner info">Uploading…</div>';
+
+  try {
+    const init = await fetch('/api/publish/init', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        video_size: file.size,
+        post_info: {
+          title: $('title').value,
+          privacy_level: selectedPrivacy(),
+          disable_comment: !$('allowComment').checked,
+          disable_duet: !$('allowDuet').checked,
+          disable_stitch: !$('allowStitch').checked,
+          brand_organic_toggle: $('commercial').checked && $('yourBrand').checked,
+          brand_content_toggle: $('commercial').checked && $('brandedContent').checked,
+        },
+      }),
+    }).then((r) => r.json());
+
+    if (!init.publish_id) throw new Error(JSON.stringify(init.error || init));
+
+    const put = await fetch('/api/publish/upload?publish_id=' + encodeURIComponent(init.publish_id), {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type || 'video/mp4' },
+      body: file,
+    }).then((r) => r.json());
+    if (!put.ok) throw new Error(JSON.stringify(put));
+
+    out.innerHTML = '<div class="banner info">Uploaded. TikTok is processing your video — this may take a few minutes.</div>';
+
+    // Audit Point 5: poll to a terminal status. Never report success early.
+    // 15s interval keeps us under the 6 requests/minute per-token rate limit.
+    const terminal = await poll(init.publish_id);
+    if (terminal.status === 'PUBLISH_COMPLETE') {
+      out.innerHTML = '<div class="banner ok">Posted. Open the TikTok app to see it on your profile.</div>';
+    } else if (terminal.status === 'TIMED_OUT') {
+      out.innerHTML = '<div class="banner info">TikTok is still processing this video. Check your profile in a few minutes before posting it again.</div>';
+    } else {
+      out.innerHTML = '<div class="banner bad">TikTok reported: ' + esc(terminal.status) +
+        (terminal.fail_reason ? ' (' + esc(terminal.fail_reason) + ')' : '') + '</div>';
+    }
+  } catch (e) {
+    out.innerHTML = '<div class="banner bad">Could not post: ' + esc(e.message || e) + '</div>';
+  } finally {
+    posting = false; refresh();
+  }
+});
+
+async function poll(publishId) {
+  const deadline = Date.now() + 5 * 60 * 1000;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 15000));
+    const r = await fetch('/api/publish/status?publish_id=' + encodeURIComponent(publishId), { cache: 'no-store' })
+      .then((x) => x.json());
+    const d = r.data || {};
+    if (d.status === 'PUBLISH_COMPLETE' || d.status === 'FAILED') return d;
+  }
+  return { status: 'TIMED_OUT' };
+}
+
+loadCreator();
+</script>
+</body>
+</html>
