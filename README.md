@@ -68,8 +68,13 @@ TikTok app settings:
 ## Troubleshooting
 
 `GET /api/health` returns booleans for each secret plus the KV status. It never returns
-any value. If sign-in fails with `client_key=undefined`, check it first -- a secret saved
-in the dashboard only takes effect once a new version is deployed.
+any value. If sign-in fails with `client_key=undefined`, check it first.
+
+**Secrets and the GitHub integration.** Deploying through Workers Builds used to delete
+the dashboard secrets on every build (cloudflare/workers-sdk#8871), which shows up as
+`/api/health` reporting `false` for everything while KV still reports `ok`. `keep_vars:
+true` in `wrangler.jsonc` prevents that. If the secrets ever have to be re-entered, set
+them **after** the deploy that carries `keep_vars`, not before.
 
 ## Design notes
 

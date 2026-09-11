@@ -4,6 +4,10 @@
   "main": "src/index.js",
   "compatibility_date": "2026-09-01",
 
+  // Deploying through the GitHub integration otherwise wipes the secrets that were
+  // set in the dashboard, on every build. See cloudflare/workers-sdk#8871.
+  "keep_vars": true,
+
   // Static pages. A request that matches a file here is served directly and the
   // Worker is never invoked; everything else falls through to src/index.js.
   "assets": {
